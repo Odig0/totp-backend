@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { generateSync } from 'otplib';
+import { generateSync, verifySync } from 'otplib';
 import { TotpServiceEntity } from '../entities/totp-service.entity';
 import { EncryptionService } from '../common/encryption.service';
 
@@ -104,5 +104,30 @@ export class TotpService {
     if (result.affected === 0) {
       throw new NotFoundException(`Service "${name}" not found`);
     }
+  }
+
+  async verifyOtp(
+    userId: string,
+    name: string,
+    otp: string,
+  ): Promise<{ valid: boolean; message: string }> {
+    const service = await this.totpServiceRepository.findOne({
+      where: { userId, serviceName: name.toLowerCase() },
+    });
+
+    if (!service) {
+      throw new NotFoundException(`Service "${name}" not found`);
+    }
+
+    const secret = this.encryptionService.decrypt(service.encryptedSecret);
+    const result = verifySync({ token: otp, secret });
+    const isValid = typeof result === 'boolean' ? result : result.valid;
+
+    return {
+      valid: isValid,
+      message: isValid
+        ? 'OTP válido'
+        : 'OTP inválido o expirado. Los códigos cambian cada 30 segundos.',
+    };
   }
 }

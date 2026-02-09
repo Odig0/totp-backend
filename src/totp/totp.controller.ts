@@ -23,6 +23,12 @@ class RegisterServiceDto {
   secret!: string;
 }
 
+class VerifyOtpDto {
+  @IsString()
+  @IsNotEmpty()
+  otp!: string;
+}
+
 @Controller('services')
 @UseGuards(JwtAuthGuard)
 export class TotpController {
@@ -46,5 +52,14 @@ export class TotpController {
   @Delete(':name')
   deleteService(@GetUser() user: User, @Param('name') name: string) {
     return this.totpService.deleteService(user.id, name);
+  }
+
+  @Post(':name/verify')
+  verifyOtp(
+    @GetUser() user: User,
+    @Param('name') name: string,
+    @Body() dto: VerifyOtpDto,
+  ) {
+    return this.totpService.verifyOtp(user.id, name, dto.otp);
   }
 }
